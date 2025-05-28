@@ -66,7 +66,7 @@ function transpose(board: number[][]): number[][] {
   return board[0].map((_, i) => board.map(row => row[i]));
 }
 
-function addRandomTile(board: number[][]): number[][] {
+function addRandomTile(board: number[][], score: number = 0): number[][] {
   const emptyCells: { row: number; col: number }[] = [];
 
   board.forEach((row, rowIndex) => {
@@ -79,14 +79,20 @@ function addRandomTile(board: number[][]): number[][] {
 
   if (emptyCells.length === 0) return board;
 
-  const { row, col } = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-  const newValue = Math.random() < 0.9 ? 2 : 4;
+  // Determine which tile to spawn based on score thresholds
+  const base = 2;
+  // How many times to double the base tile?
+  const power = Math.min(10, Math.floor(score / 500) + 1);
+  const tileToSpawn = base * (2 ** (power - 1));
 
+  // Pick random empty cell
+  const { row, col } = emptyCells[Math.floor(Math.random() * emptyCells.length)];
   const newBoard = board.map(r => [...r]);
-  newBoard[row][col] = newValue;
+  newBoard[row][col] = tileToSpawn;
 
   return newBoard;
 }
+
 
 const emptyBoard = [
   [0, 0, 0, 0],
@@ -118,6 +124,18 @@ function canMove(board: number[][]): boolean {
 
   return false;
 }
+
+const boardsAreEqual = (b1: number[][], b2: number[][]): boolean => {
+  for (let i = 0; i < b1.length; i++) {
+    for (let j = 0; j < b1[i].length; j++) {
+      if (b1[i][j] !== b2[i][j]) {
+        return false;
+      }
+    }
+  }
+  return true;
+};
+
 
 const GameBoard: React.FC = () => {
   const [board, setBoard] = useState<number[][]>(emptyBoard);
@@ -171,13 +189,14 @@ const GameBoard: React.FC = () => {
             return prevBoard;
         }
 
-        const boardChanged = JSON.stringify(prevBoard) !== JSON.stringify(newBoard);
+        const boardChanged = !boardsAreEqual(prevBoard, newBoard);
 
         if (!boardChanged) return prevBoard;
 
         setScore(prev => prev + gained);
 
-        const newBoardWithTile = addRandomTile(newBoard);
+        const newBoardWithTile = addRandomTile(newBoard, score + gained);
+
 
         // Check if game over after move
         if (!canMove(newBoardWithTile)) {
@@ -195,38 +214,43 @@ const GameBoard: React.FC = () => {
   if (!initialized) return null;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#faf8ef] p-4">
-      <h1 className="text-4xl font-bold mb-4">2048 Game</h1>
-      <div className="mb-4 flex items-center space-x-8">
-        <div className="text-xl font-semibold">Score: {score}</div>
-        <button
-          onClick={() => {
-            setBoard(createInitialBoard());
-            setScore(0);
-            setGameOver(false);
-          }}
-          className="px-4 py-2 bg-[#8f7a66] text-white rounded hover:bg-[#a1887f] transition"
-        >
-          Restart Game
-        </button>
-      </div>
+ <div className="flex flex-col items-center justify-center min-h-screen bg-[#faf8ef] p-4">
+    <h1 className="text-5xl font-extrabold mb-6 text-[#776e65] drop-shadow-md">
+      2048 Game
+    </h1>
 
-      <div className="bg-[#bbada0] p-4 rounded">
-        {board.map((row, rowIndex) => (
-          <div key={rowIndex} className="flex">
-            {row.map((cell, colIndex) => (
-              <Tile key={`${rowIndex}-${colIndex}`} value={cell} />
-            ))}
-          </div>
-        ))}
+    <div className="mb-6 flex items-center space-x-10">
+      <div className="text-2xl font-bold text-[#f9f6f2] bg-[#776e65] px-6 py-3 rounded shadow-lg select-none">
+        Score: {score}
       </div>
-
-      {gameOver && (
-        <div className="mt-6 text-2xl font-bold text-red-600">
-          Game Over! No more moves possible.
-        </div>
-      )}
+      <button
+        onClick={() => {
+          setBoard(createInitialBoard());
+          setScore(0);
+          setGameOver(false);
+        }}
+        className="px-6 py-3 bg-[#8f7a66] text-white rounded-lg shadow-md hover:bg-[#a1887f] active:bg-[#7a6a58] transition duration-200"
+      >
+        Restart Game
+      </button>
     </div>
+
+    <div className="bg-[#bbada0] p-4 rounded">
+      {board.map((row, rowIndex) => (
+        <div key={rowIndex} className="flex">
+          {row.map((cell, colIndex) => (
+            <Tile key={`${rowIndex}-${colIndex}`} value={cell} />
+          ))}
+        </div>
+      ))}
+    </div>
+
+    {gameOver && (
+      <div className="mt-6 text-2xl font-bold text-red-600">
+        Game Over! No more moves possible.
+      </div>
+    )}
+  </div>
   );
 };
 
