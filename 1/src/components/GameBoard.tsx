@@ -250,7 +250,7 @@ const GameBoard: React.FC = () => {
         Game Over! No more moves possible.
       </div>
     )}
-  </div>
+  </div> 
   );
 };
 
